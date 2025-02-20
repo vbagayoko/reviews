@@ -1,53 +1,85 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const { MongoClient } = require('mongodb');
 const app = express();
 const cors = require('cors');
 
-const REVIEWS_FILE = 'reviews.json';
+// MongoDB connection string - replace with your own
+const uri = process.env.MONGODB_URI || "mongodb+srv://vbagayoko:<db_password>@cluster0.3lqr6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const client = new MongoClient(uri);
+
+let reviewsCollection;
+
+// Connect to MongoDB
+async function connectDB() {
+    try {
+        await client.connect();
+        const db = client.db('reviews_db');
+        reviewsCollection = db.collection('reviews');
+        console.log('Connected to MongoDB');
+    } catch (err) {
+        console.error('Failed to connect to MongoDB:', err);
+    }
+}
+connectDB();
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Initialize reviews file if it doesn't exist
-if (!fs.existsSync(REVIEWS_FILE)) {
-    fs.writeFileSync(REVIEWS_FILE, JSON.stringify({}));
-}
-
 // Get all reviews
-app.get('/api/reviews', (req, res) => {
-    const reviews = JSON.parse(fs.readFileSync(REVIEWS_FILE));
-    res.json(reviews);
+app.get('/api/reviews', async (req, res) => {
+    try {
+        const reviews = await reviewsCollection.find().toArray();
+        // Transform the data to match the previous format
+        const formattedReviews = reviews.reduce((acc, review) => {
+            if (!acc[review.itemName]) {
+                acc[review.itemName] = [];
+            }
+            acc[review.itemName].push({
+                text: review.text,
+                rating: review.rating,
+                date: review.date
+            });
+            return acc;
+        }, {});
+        res.json(formattedReviews);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
 });
 
 // Add a review
-app.post('/api/reviews', (req, res) => {
+app.post('/api/reviews', async (req, res) => {
     const { itemName, reviewText, rating } = req.body;
     
     if (!itemName || !reviewText) {
         return res.status(400).json({ error: 'Item name and review text are required' });
     }
 
-    const reviews = JSON.parse(fs.readFileSync(REVIEWS_FILE));
-    
-    if (!reviews[itemName]) {
-        reviews[itemName] = [];
+    try {
+        const review = {
+            itemName,
+            text: reviewText,
+            rating: parseInt(rating),
+            date: new Date().toISOString()
+        };
+        
+        await reviewsCollection.insertOne(review);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to add review' });
     }
-
-    reviews[itemName].push({
-        text: reviewText,
-        rating: parseInt(rating),
-        date: new Date().toISOString()
-    });
-
-    fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2));
-    res.json({ success: true });
 });
 
 // Use environment port or fallback to 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+
+// Handle shutdown gracefully
+process.on('SIGINT', async () => {
+    await client.close();
+    process.exit();
 });
