@@ -1,7 +1,6 @@
-// reviews.js
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const express = require('express');
 const app = express();
 const cors = require('cors');
 
@@ -47,7 +46,8 @@ app.post('/api/reviews', (req, res) => {
     res.json({ success: true });
 });
 
-const PORT = 5000;
-app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Use environment port or fallback to 5000
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
