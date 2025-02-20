@@ -51,13 +51,15 @@ app.get('/api/reviews', async (req, res) => {
 
 // Add a review
 app.post('/api/reviews', async (req, res) => {
-    const { itemName, reviewText, rating } = req.body;
-    
-    if (!itemName || !reviewText) {
-        return res.status(400).json({ error: 'Item name and review text are required' });
-    }
-
     try {
+        console.log('Received review request:', req.body);
+        const { itemName, reviewText, rating } = req.body;
+        
+        if (!itemName || !reviewText) {
+            console.log('Missing required fields');
+            return res.status(400).json({ error: 'Item name and review text are required' });
+        }
+
         const review = {
             itemName,
             text: reviewText,
@@ -65,10 +67,13 @@ app.post('/api/reviews', async (req, res) => {
             date: new Date().toISOString()
         };
         
+        console.log('Attempting to insert review:', review);
         await reviewsCollection.insertOne(review);
+        console.log('Review inserted successfully');
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to add review' });
+        console.error('Error adding review:', err);
+        res.status(500).json({ error: 'Failed to add review: ' + err.message });
     }
 });
 
