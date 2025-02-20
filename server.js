@@ -4,7 +4,7 @@ const app = express();
 const cors = require('cors');
 
 // MongoDB connection string - replace with your own
-const uri = process.env.MONGODB_URI || "mongodb+srv://vbagayoko:<db_password>@cluster0.3lqr6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB_URI || "mongodb+srv://vbagayoko:Energumene1@cluster0.3lqr6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
 
 let reviewsCollection;
