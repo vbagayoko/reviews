@@ -129,29 +129,31 @@
             });
         }
 
-        async function displayReviews(item) {
-            const reviews = await getReviews();
-            const itemReviews = reviews[item] || [];
-            const itemList = document.getElementById('itemList');
-            
-            itemList.innerHTML = `
-                <h3>${item}</h3>
-                <button onclick="displayItems()">Back to items</button>
-            `;
+        async function displayItems() {
+    const reviews = await getReviews();
+    const itemList = document.getElementById('itemList');
+    itemList.innerHTML = '<h3>Items</h3>';
 
-            itemReviews
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .forEach(review => {
-                    const div = document.createElement('div');
-                    div.className = 'review';
-                    div.innerHTML = `
-                        <div>${review.text}</div>
-                        <div>Rating: ${review.rating} ★</div>
-                        <small>Date: ${new Date(review.date).toLocaleDateString()}</small>
-                    `;
-                    itemList.appendChild(div);
-                });
-        }
+    // Convert to array of [itemName, reviews] pairs and sort by most recent review
+    const sortedItems = Object.entries(reviews)
+        .map(([item, itemReviews]) => ({
+            item,
+            itemReviews,
+            latestReview: Math.max(...itemReviews.map(review => new Date(review.date).getTime()))
+        }))
+        .sort((a, b) => b.latestReview - a.latestReview);
+
+    sortedItems.forEach(({ item, itemReviews }) => {
+        const avgRating = calculateAverage(itemReviews);
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <a href="#" onclick="displayReviews('${item}'); return false;">
+                ${item} (${avgRating} ★)
+            </a>
+        `;
+        itemList.appendChild(div);
+    });
+}
 
         async function search() {
             const searchTerm = document.getElementById('searchInput').value.trim();
