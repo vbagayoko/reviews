@@ -57,6 +57,15 @@
 
     <script>
         const API_URL = window.location.origin + '/api';
+		
+		function escapeHtml(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
         async function getReviews() {
             try {
@@ -113,45 +122,70 @@
         }
 
         async function displayItems() {
-            const reviews = await getReviews();
-            const itemList = document.getElementById('itemList');
-            itemList.innerHTML = '<h3>Items</h3>';
+    const reviews = await getReviews();
+    const itemList = document.getElementById('itemList');
+    itemList.innerHTML = '<h3>Items</h3>';
 
-            Object.entries(reviews).forEach(([item, itemReviews]) => {
-                const avgRating = calculateAverage(itemReviews);
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <a href="#" onclick="displayReviews('${item}'); return false;">
-                        ${item} (${avgRating} ★)
-                    </a>
-                `;
-                itemList.appendChild(div);
-            });
-        }
+    Object.entries(reviews).forEach(([item, itemReviews]) => {
+        const avgRating = calculateAverage(itemReviews);
+        const div = document.createElement('div');
+        
+        // Create the link element properly instead of using innerHTML with onclick
+        const link = document.createElement('a');
+        link.href = "#";
+        link.textContent = `${item} (${avgRating} ★)`;
+        
+        // Add event listener instead of inline onclick
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            displayReviews(item);
+        });
+        
+        div.appendChild(link);
+        itemList.appendChild(div);
+    });
+}
 
         async function displayReviews(item) {
-            const reviews = await getReviews();
-            const itemReviews = reviews[item] || [];
-            const itemList = document.getElementById('itemList');
-            
-            itemList.innerHTML = `
-                <h3>${item}</h3>
-                <button onclick="displayItems()">Back to items</button>
-            `;
+    const reviews = await getReviews();
+    const itemReviews = reviews[item] || [];
+    const itemList = document.getElementById('itemList');
+    
+    itemList.innerHTML = '';
+    
+    // Create header with escaped content
+    const header = document.createElement('h3');
+    header.textContent = item;
+    itemList.appendChild(header);
+    
+    // Create back button
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Back to items';
+    backButton.addEventListener('click', displayItems);
+    itemList.appendChild(backButton);
 
-            itemReviews
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .forEach(review => {
-                    const div = document.createElement('div');
-                    div.className = 'review';
-                    div.innerHTML = `
-                        <div>${review.text}</div>
-                        <div>Rating: ${review.rating} ★</div>
-                        <small>Date: ${new Date(review.date).toLocaleDateString()}</small>
-                    `;
-                    itemList.appendChild(div);
-                });
-        }
+    itemReviews
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .forEach(review => {
+            const div = document.createElement('div');
+            div.className = 'review';
+            
+            const textDiv = document.createElement('div');
+            textDiv.textContent = review.text;
+            
+            const ratingDiv = document.createElement('div');
+            ratingDiv.textContent = `Rating: ${review.rating} ★`;
+            
+            const dateSmall = document.createElement('small');
+            dateSmall.textContent = `Date: ${new Date(review.date).toLocaleDateString()}`;
+            
+            div.appendChild(textDiv);
+            div.appendChild(ratingDiv);
+            div.appendChild(dateSmall);
+            
+            itemList.appendChild(div);
+        });
+}
 
         async function search() {
             const searchTerm = document.getElementById('searchInput').value.trim();
